@@ -1,0 +1,76 @@
+# Desarrollo con Elixir/OTP XXIX
+
+## Aplicación OTP Final
+
+Por el momento, hemos necesitado iniciar manualmente el supervisor desde una sesión IEx. Sin embargo, nos interesa que este se ejecute de manera automática cuando la aplicación misma se ejecuta.
+
+Hasta este punto hemos estado usando la palabra "aplicación" de una manera un tanto incorrecta, pues una aplicación es realmente una entidad OTP de primera clase. 
+Para saber qué aplicaciones se están ejecutando en cada momento podemos utilizar la siguiente función "**started_applications**" del módulo "Applications". Si ejecutásemos nuestro código en una sesión IEx y comprobásemos el resultado de esta función podríamos ver cómo se estaría ejecutando "**Servy**".
+
+Esto implica que ejecutar "**iex -S mix**" inicia automáticamente la aplicación Servy y todas las dependencias que también son aplicaciones.
+
+Volvamos ahora al archivo "mix.exs" que fue creado cuando creamos el proyecto con "**mix new**", donde aplicamos información acerca de la aplicación. Las aplicaciones como "**poison**" notadas como dependencias, se inician también tal y como vimos utilizando la función *started_applications*.
+
+Podemos usar la variable "extra_applications" que encontramos en la función ***application*** para incluir cualquier aplicación extra que deba de inicializarse.
+
+Si ahora examinamos en el directorio "ebin", dentro de "servy", podemos encontrar una cantidad inmensa de archivos con la terminación "**.beam**" que se corresponden con cada uno de nuestros módulos. Son archivos binarios que se ejecutan en la máquina virtual de Erlang. No obstante, podemos percatarnos de que al final del todo encontramos otra línea con el contenido "servy.app". Veamos lo que hay dentro, utilizando el comando "**cat**".
+
+A priori encontramos una gran tabla de código Erlang, incluyendo el nombre la aplicación, descripción, una lista de aplicaciones, etc. Los datos que aparecen aquí pueden ser modificados en el fichero "mix.exs" que mencionamos anteriormente.
+
+Cuando ejecutamos "iex -S mix" se compila todo lo que esté desactualizado y se genera un nuevo fichero "servy.app" y OTP lo busca y utiliza para lanzar la aplicación.
+
+Tras este análisis del funcionamiento de OTP, volvamos al objetivo de esta lección, hacer que el Supervisor se ejecute de manera automática cuando lanzamos la aplicación. Utilizaremos llamadas de retorno para especificar el comportamiento de la aplicación. Usaremos el fichero "servy.ex" como módulo de retorno.
+
+```elixir
+defmodule Servy do
+  use Application
+
+  def start(_type, _args) do
+    IO.puts("Starting the application...")
+    Servy.Supervisor.start_link()
+  end
+end
+```
+
+Ahora debemos de asegurarnos de que este móduli se llame dentro del archivo que estuvimos analizando antes, "mix.exs"; por lo que hemos de hacer alguna modificación en este:
+
+```elixir
+#...
+
+def application do
+  [
+    extra_applications: [:logger]
+    mod: {Servy, []}
+  ]
+
+end
+
+#...
+```
+
+OTP ejecutará de manera automática el módulo incluido en la línea "mod" cuando se inicie la aplicación. Si ahora lanzásemos una sesión IEx con el ya utilizado "iex -S mix", podremos observar como todos los procesos se ejecutan y de manera aparentemente correcta.
+
+Si quisiésemos lanzar la aplicación sin hacer uso de IEx, también podemos lanzarla con "**mix run**". De esta manera, tras iniciar la aplicación volvemos al terminal puesto que BEAM termina tan pronto como la función *start* de Servy finaliza. Para que siga ejecutándose debemos de incluir en "mix run" lo siguiente:
+
+-**mix run --no-halt**.
+
+También es posible elegir el puerto en el que siempre se ejecutará la aplicación, en "mix.exs", añadiendo una nueva línea a la función "application":
+
+```elixir
+#...
+
+def application do
+  [
+    extra_applications: [:logger]
+    mod: {Servy, []}
+    env: [port: 3000]
+  ]
+
+end
+
+#...
+```
+
+Podríamos añadir esta información para que se muestre por pantalla al lanzar el programa como ya hemos visto durante todo este tiempo.
+
+Con esta última lección se da por finalizado este curso. Esperamos que disfrutes el uso de Elixir para crear tus propias aplicaciones.
